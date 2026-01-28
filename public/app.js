@@ -32,6 +32,8 @@ const revealBtn = document.getElementById('reveal-btn');
 const resetBtn = document.getElementById('reset-btn');
 const timerVal = document.getElementById('timer-val');
 const timerToggle = document.getElementById('timer-toggle');
+const averageDisplay = document.getElementById('average-display');
+const averageVal = document.getElementById('average-val');
 
 // Voting Systems
 const SYSTEMS = {
@@ -206,6 +208,24 @@ function updateUI() {
     game.creatorId === state.playerId || game.revealPolicy === 'all';
   revealBtn.style.display = isAdmin && !game.revealed ? 'block' : 'none';
   resetBtn.style.display = isAdmin && game.revealed ? 'block' : 'none';
+
+  // Average Calculation
+  if (game.revealed) {
+    const numericVotes = game.players
+      .map((p) => parseFloat(p.vote))
+      .filter((v) => !isNaN(v));
+
+    if (numericVotes.length > 0) {
+      const avg =
+        numericVotes.reduce((sum, v) => sum + v, 0) / numericVotes.length;
+      averageVal.textContent = avg % 1 === 0 ? avg.toString() : avg.toFixed(1);
+      averageDisplay.classList.remove('hidden');
+    } else {
+      averageDisplay.classList.add('hidden');
+    }
+  } else {
+    averageDisplay.classList.add('hidden');
+  }
 }
 
 function updateTimer() {

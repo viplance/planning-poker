@@ -208,7 +208,7 @@
                   />
                 </svg>
               </button>
-              <span id="timer-val">00:00</span>
+              <span id="timer-val" class="cursor-pointer">00:00</span>
             </div>
           </div>
         </header>
@@ -251,6 +251,123 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timer Selector Modal -->
+    <div
+      id="timer-modal"
+      class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm"
+    >
+      <div class="glass p-8 rounded-3xl card-shadow w-full max-w-xs space-y-6">
+        <h3 class="text-xl font-bold text-center text-white">Set Duration</h3>
+
+        <div class="flex items-center justify-center gap-4">
+          <!-- Minutes -->
+          <div class="flex flex-col items-center gap-2">
+            <button
+              onclick="adjustTimer('min', 1)"
+              class="hover:bg-slate-700 p-2 rounded-lg transition-colors"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </button>
+            <span id="modal-min" class="text-4xl font-mono font-bold text-white"
+              >01</span
+            >
+            <button
+              onclick="adjustTimer('min', -1)"
+              class="hover:bg-slate-700 p-2 rounded-lg transition-colors"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <span class="text-4xl font-mono font-bold text-slate-500 mb-8"
+            >:</span
+          >
+
+          <!-- Seconds -->
+          <div class="flex flex-col items-center gap-2">
+            <button
+              onclick="adjustTimer('sec', 5)"
+              class="hover:bg-slate-700 p-2 rounded-lg transition-colors"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </button>
+            <span id="modal-sec" class="text-4xl font-mono font-bold text-white"
+              >00</span
+            >
+            <button
+              onclick="adjustTimer('sec', -5)"
+              class="hover:bg-slate-700 p-2 rounded-lg transition-colors"
+            >
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button
+            id="close-timer-modal"
+            class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            id="save-timer-modal"
+            class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-900/20 transform active:scale-95 transition-all text-sm"
+          >
+            Set Timer
+          </button>
         </div>
       </div>
     </div>

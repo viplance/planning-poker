@@ -74,6 +74,7 @@ wss.on('connection', (ws) => {
           revealed: false,
           timer: null,
           timerStartedAt: null,
+          timerDuration: parseInt(payload.duration) || 60,
         };
         games.set(gameId, game);
         ws.send(JSON.stringify({ type: 'GAME_CREATED', payload: { gameId } }));
@@ -117,10 +118,16 @@ wss.on('connection', (ws) => {
       case 'REVEAL_CARDS': {
         const game = games.get(currentGameId);
         if (game) {
+          const allVoted =
+            game.players.size > 0 &&
+            Array.from(game.players.values()).every((p) => p.vote !== null);
           const canReveal =
-            game.revealPolicy === 'all' || game.creatorId === currentPlayer.id;
+            game.revealPolicy === 'all' ||
+            game.creatorId === currentPlayer.id ||
+            allVoted;
           if (canReveal) {
             game.revealed = true;
+            game.timerStartedAt = null; // Stop timer if it was running
             broadcastUpdate(game);
           }
         }
@@ -145,8 +152,31 @@ wss.on('connection', (ws) => {
       case 'START_TIMER': {
         const game = games.get(currentGameId);
         if (game) {
-          game.timerStartedAt = Date.now();
-          broadcastUpdate(game);
+          const canAction =
+            game.revealPolicy === 'all' || game.creatorId === currentPlayer.id;
+          if (canAction) {
+            // Reset game state for new round
+            game.revealed = false;
+            game.players.forEach((p) => (p.vote = null));
+
+            game.timerStartedAt = Date.now();
+            game.timerDuration = parseInt(payload.duration) || 60;
+            broadcastUpdate(game);
+          }
+        }
+        break;
+      }
+
+      case 'SET_TIMER_DURATION': {
+        const game = games.get(currentGameId);
+        if (game) {
+          const canAction =
+            game.revealPolicy === 'all' || game.creatorId === currentPlayer.id;
+          const isTimerRunning = !!game.timerStartedAt;
+          if (canAction && !isTimerRunning) {
+            game.timerDuration = parseInt(payload.duration) || 60;
+            broadcastUpdate(game);
+          }
         }
         break;
       }
@@ -177,6 +207,8 @@ function broadcastUpdate(game) {
     revealed: game.revealed,
     creatorId: game.creatorId,
     timerStartedAt: game.timerStartedAt,
+    timerDuration: game.timerDuration || 60,
+    serverTime: Date.now(),
     players: Array.from(game.players.values()).map((p) => ({
       id: p.id,
       name: p.name,

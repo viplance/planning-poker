@@ -9,6 +9,8 @@ const state = {
   isCreator: false,
   currentGame: null,
   timerInterval: null,
+  timerDuration: parseInt(localStorage.getItem('timerDuration')) || 60,
+  serverOffset: 0,
 };
 
 localStorage.setItem('playerId', state.playerId);
@@ -34,6 +36,11 @@ const timerVal = document.getElementById('timer-val');
 const timerToggle = document.getElementById('timer-toggle');
 const averageDisplay = document.getElementById('average-display');
 const averageVal = document.getElementById('average-val');
+const timerModal = document.getElementById('timer-modal');
+const modalMin = document.getElementById('modal-min');
+const modalSec = document.getElementById('modal-sec');
+const closeTimerModal = document.getElementById('close-timer-modal');
+const saveTimerModal = document.getElementById('save-timer-modal');
 
 // Voting Systems
 const SYSTEMS = {
@@ -132,17 +139,26 @@ function updateUI() {
   displayGameName.textContent = game.name;
   gameLink.textContent = window.location.href;
 
+  // Sync state duration and clock offset
+  if (game.serverTime) {
+    state.serverOffset = Date.now() - game.serverTime;
+  }
+  if (game.timerDuration) {
+    state.timerDuration = parseInt(game.timerDuration);
+  }
+
   // Timer Logic
   if (game.timerStartedAt) {
     if (!state.timerInterval) {
       state.timerInterval = setInterval(updateTimer, 1000);
     }
+    updateTimer(); // Update immediately on every game update
   } else {
     if (state.timerInterval) {
       clearInterval(state.timerInterval);
       state.timerInterval = null;
     }
-    timerVal.textContent = '00:00';
+    timerVal.textContent = formatTime(state.timerDuration);
   }
 
   // Players List
@@ -206,8 +222,35 @@ function updateUI() {
   // Admin Controls
   const isAdmin =
     game.creatorId === state.playerId || game.revealPolicy === 'all';
-  revealBtn.style.display = isAdmin && !game.revealed ? 'block' : 'none';
+  const isTimerRunning = !!game.timerStartedAt;
+  const allVoted =
+    game.players.length > 0 && game.players.every((p) => p.vote === true);
+
+  revealBtn.style.display =
+    (isAdmin || allVoted) && !game.revealed && (!isTimerRunning || allVoted)
+      ? 'block'
+      : 'none';
   resetBtn.style.display = isAdmin && game.revealed ? 'block' : 'none';
+
+  // Timer Controls Visibility
+  if (isAdmin) {
+    timerToggle.classList.remove('hidden');
+    if (isTimerRunning) {
+      timerVal.classList.remove('cursor-pointer');
+      timerVal.title = 'Cannot change duration while timer is running';
+      timerToggle.classList.add('opacity-50', 'cursor-not-allowed');
+      timerToggle.disabled = true;
+    } else {
+      timerVal.classList.add('cursor-pointer');
+      timerVal.title = 'Click to set duration';
+      timerToggle.classList.remove('opacity-50', 'cursor-not-allowed');
+      timerToggle.disabled = false;
+    }
+  } else {
+    timerToggle.classList.add('hidden');
+    timerVal.classList.remove('cursor-pointer');
+    timerVal.title = '';
+  }
 
   // Average Calculation
   if (game.revealed) {
@@ -230,14 +273,36 @@ function updateUI() {
 
 function updateTimer() {
   const start = state.currentGame?.timerStartedAt;
+  const duration = state.currentGame?.timerDuration || state.timerDuration;
   if (!start) return;
 
-  const diff = Math.floor((Date.now() - start) / 1000);
-  const mins = Math.floor(diff / 60)
+  const now = Date.now() - state.serverOffset;
+  const diff = Math.floor((now - start) / 1000);
+  const remaining = Math.max(0, duration - diff);
+
+  timerVal.textContent = formatTime(remaining);
+
+  if (remaining === 0 && !state.currentGame.revealed) {
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+    }
+    // Only the creator or reveal-policy-all players can trigger reveal
+    const isAdmin =
+      state.currentGame.creatorId === state.playerId ||
+      state.currentGame.revealPolicy === 'all';
+    if (isAdmin) {
+      state.ws.send(JSON.stringify({ type: 'REVEAL_CARDS' }));
+    }
+  }
+}
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60)
     .toString()
     .padStart(2, '0');
-  const secs = (diff % 60).toString().padStart(2, '0');
-  timerVal.textContent = `${mins}:${secs}`;
+  const secs = (seconds % 60).toString().padStart(2, '0');
+  return `${mins}:${secs}`;
 }
 
 // Actions
@@ -266,6 +331,7 @@ startBtn.onclick = () => {
         gameName,
         votingSystem,
         revealPolicy,
+        duration: state.timerDuration,
       },
     }),
   );
@@ -302,7 +368,78 @@ resetBtn.onclick = () => {
 };
 
 timerToggle.onclick = () => {
-  state.ws.send(JSON.stringify({ type: 'START_TIMER' }));
+  const isAdmin =
+    state.currentGame?.creatorId === state.playerId ||
+    state.currentGame?.revealPolicy === 'all';
+  const isTimerRunning = !!state.currentGame?.timerStartedAt;
+  if (!isAdmin || isTimerRunning) return;
+
+  // Start with a clean slate
+  state.ws.send(JSON.stringify({ type: 'RESET_GAME' }));
+
+  state.ws.send(
+    JSON.stringify({
+      type: 'START_TIMER',
+      payload: { duration: state.timerDuration },
+    }),
+  );
+};
+
+timerVal.onclick = () => {
+  const isAdmin =
+    state.currentGame?.creatorId === state.playerId ||
+    state.currentGame?.revealPolicy === 'all';
+  const isTimerRunning = !!state.currentGame?.timerStartedAt;
+
+  if (!isAdmin || isTimerRunning) return;
+
+  // Initialize modal with current state
+  const mins = Math.floor(state.timerDuration / 60);
+  const secs = state.timerDuration % 60;
+  modalMin.textContent = mins.toString().padStart(2, '0');
+  modalSec.textContent = secs.toString().padStart(2, '0');
+
+  timerModal.classList.remove('hidden');
+};
+
+window.adjustTimer = (type, amount) => {
+  if (type === 'min') {
+    let min = parseInt(modalMin.textContent) + amount;
+    if (min < 0) min = 0;
+    if (min > 59) min = 59;
+    modalMin.textContent = min.toString().padStart(2, '0');
+  } else {
+    let sec = parseInt(modalSec.textContent) + amount;
+    if (sec < 0) sec = 0;
+    if (sec > 59) sec = 59;
+    modalSec.textContent = sec.toString().padStart(2, '0');
+  }
+};
+
+closeTimerModal.onclick = () => {
+  timerModal.classList.add('hidden');
+};
+
+saveTimerModal.onclick = () => {
+  const mins = parseInt(modalMin.textContent);
+  const secs = parseInt(modalSec.textContent);
+  const duration = mins * 60 + secs;
+
+  if (duration <= 0) {
+    alert('Please set a duration greater than 0');
+    return;
+  }
+
+  state.timerDuration = duration;
+  localStorage.setItem('timerDuration', duration);
+  state.ws.send(
+    JSON.stringify({
+      type: 'SET_TIMER_DURATION',
+      payload: { duration: duration },
+    }),
+  );
+
+  timerModal.classList.add('hidden');
 };
 
 gameLink.onclick = () => {

@@ -162,6 +162,18 @@
           </div>
 
           <div class="flex items-center gap-4">
+            <button
+              id="reveal-btn"
+              class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-900/20 transform transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              Reveal Cards
+            </button>
+            <button
+              id="reset-btn"
+              class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg transform transition-all active:scale-95 text-sm"
+            >
+              New Round
+            </button>
             <div
               id="timer-display"
               class="glass px-6 py-3 rounded-2xl flex items-center gap-3 font-mono text-2xl font-bold text-blue-400"
@@ -216,7 +228,7 @@
             <!-- Voting Interface -->
             <div id="voting-controls" class="space-y-6">
               <h3
-                class="text-lg font-semibold text-slate-300 text-center uppercase tracking-wider"
+                class="text-lg font-semibold text-slate-300 text-center tracking-wider"
               >
                 Pick your estimate
               </h3>
@@ -226,22 +238,6 @@
               >
                 <!-- Buttons will be injected here -->
               </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex justify-center gap-4 pt-4">
-              <button
-                id="reveal-btn"
-                class="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-emerald-900/20 transform transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Reveal Cards
-              </button>
-              <button
-                id="reset-btn"
-                class="bg-slate-700 hover:bg-slate-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg transform transition-all active:scale-95"
-              >
-                New Round
-              </button>
             </div>
           </div>
         </div>

@@ -51,7 +51,7 @@ const SYSTEMS = {
     '☕',
   ],
   tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '?', '☕'],
-  natural: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '?', '☕'],
+  natural: ['1', '4', '8', '16', '32', '?', '☕'],
 };
 
 // Initialization
@@ -65,7 +65,11 @@ function init() {
     gameSetupFields.classList.add('hidden');
     startBtn.classList.add('hidden');
     joinBtn.classList.remove('hidden');
-    setupScreen.classList.remove('hidden');
+
+    // Only show setup if we don't have a name to auto-join
+    if (!state.playerName) {
+      setupScreen.classList.remove('hidden');
+    }
   } else {
     setupScreen.classList.remove('hidden');
   }
@@ -76,6 +80,12 @@ function init() {
 function connect() {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   state.ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+  state.ws.onopen = () => {
+    if (state.playerName && state.gameId) {
+      joinGame();
+    }
+  };
 
   state.ws.onmessage = (event) => {
     const { type, payload } = JSON.parse(event.data);

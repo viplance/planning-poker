@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planning Poker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: 'Outfit', sans-serif;
+        background: radial-gradient(circle at top right, #1e293b, #0f172a);
+        color: #f8fafc;
+        min-height: 100vh;
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .card-shadow {
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+      .vote-card {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .vote-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+      }
+      .vote-card.selected {
+        background: #3b82f6;
+        color: white;
+        border-color: #60a5fa;
+        transform: translateY(-8px);
+      }
+      @keyframes pulse-soft {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+      .pulse {
+        animation: pulse-soft 2s infinite;
+      }
+    </style>
+  </head>
+  <body class="p-4 md:p-8">
+    <div id="app" class="max-w-6xl mx-auto">
+      <!-- Landing / Create Game Screen -->
+      <div
+        id="setup-screen"
+        class="hidden flex flex-col items-center justify-center min-vh-80 mt-12"
+      >
+        <div class="glass p-8 rounded-3xl card-shadow w-full max-w-md">
+          <h1
+            class="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent"
+          >
+            Planning Poker
+          </h1>
+
+          <div class="space-y-6">
+            <div>
+              <label class="block text-sm font-medium mb-2 text-slate-300"
+                >Your Name</label
+              >
+              <input
+                type="text"
+                id="player-name"
+                class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="Enter your name"
+              />
+            </div>
+
+            <div id="game-setup-fields">
+              <div>
+                <label class="block text-sm font-medium mb-2 text-slate-300"
+                  >Game Name</label
+                >
+                <input
+                  type="text"
+                  id="game-name"
+                  class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  placeholder="Sprint 42 Refinement"
+                />
+              </div>
+
+              <div class="mt-4">
+                <label class="block text-sm font-medium mb-2 text-slate-300"
+                  >Voting System</label
+                >
+                <select
+                  id="voting-system"
+                  class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
+                >
+                  <option value="fibonacci">
+                    Fibonacci (0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, ?)
+                  </option>
+                  <option value="tshirt">
+                    T-Shirt Sizes (XS, S, M, L, XL, XXL, ?)
+                  </option>
+                  <option value="natural">
+                    Natural (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ?)
+                  </option>
+                </select>
+              </div>
+
+              <div class="mt-4">
+                <label class="block text-sm font-medium mb-2 text-slate-300"
+                  >Who can reveal cards?</label
+                >
+                <select
+                  id="reveal-policy"
+                  class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
+                >
+                  <option value="all">Everyone</option>
+                  <option value="creator">Only the Creator</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              id="start-btn"
+              class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/20 transform active:scale-95 transition-all text-lg"
+            >
+              Create Game
+            </button>
+
+            <button
+              id="join-btn"
+              class="hidden w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-900/20 transform active:scale-95 transition-all text-lg"
+            >
+              Join Game
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Screen -->
+      <div id="game-screen" class="hidden">
+        <header
+          class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"
+        >
+          <div>
+            <h2
+              id="display-game-name"
+              class="text-3xl font-bold text-white"
+            ></h2>
+            <p class="text-slate-400 mt-1 flex items-center gap-2">
+              <span
+                id="game-link"
+                class="bg-slate-800/50 px-3 py-1 rounded-lg text-sm font-mono cursor-pointer hover:bg-slate-700 transition-colors"
+              ></span>
+              <span class="text-xs text-slate-500">(Click to copy)</span>
+            </p>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <div
+              id="timer-display"
+              class="glass px-6 py-3 rounded-2xl flex items-center gap-3 font-mono text-2xl font-bold text-blue-400"
+            >
+              <button
+                id="timer-toggle"
+                class="hover:text-white transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-8 w-8"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </button>
+              <span id="timer-val">00:00</span>
+            </div>
+          </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <!-- Players List -->
+          <div class="lg:col-span-1 space-y-4">
+            <h3
+              class="text-lg font-semibold text-slate-300 px-2 uppercase tracking-wider"
+            >
+              Players
+            </h3>
+            <div id="player-list" class="space-y-3">
+              <!-- Player items will be injected here -->
+            </div>
+          </div>
+
+          <!-- Board & Selection -->
+          <div class="lg:col-span-3 space-y-8">
+            <!-- Cards Grid -->
+            <div
+              id="game-board"
+              class="glass rounded-3xl p-8 min-h-[400px] flex flex-wrap items-center justify-center gap-6"
+            >
+              <!-- Cards show status or results here -->
+            </div>
+
+            <!-- Voting Interface -->
+            <div id="voting-controls" class="space-y-6">
+              <h3
+                class="text-lg font-semibold text-slate-300 text-center uppercase tracking-wider"
+              >
+                Pick your estimate
+              </h3>
+              <div
+                id="voting-cards"
+                class="flex flex-wrap justify-center gap-4"
+              >
+                <!-- Buttons will be injected here -->
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-center gap-4 pt-4">
+              <button
+                id="reveal-btn"
+                class="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-emerald-900/20 transform transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Reveal Cards
+              </button>
+              <button
+                id="reset-btn"
+                class="bg-slate-700 hover:bg-slate-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg transform transition-all active:scale-95"
+              >
+                New Round
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

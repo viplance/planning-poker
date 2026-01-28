@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/viplance/planning-poker#readme",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "ws": "^8.19.0"
   }
 }

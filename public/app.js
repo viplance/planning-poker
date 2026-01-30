@@ -41,9 +41,15 @@ const modalMin = document.getElementById('modal-min');
 const modalSec = document.getElementById('modal-sec');
 const closeTimerModal = document.getElementById('close-timer-modal');
 const saveTimerModal = document.getElementById('save-timer-modal');
+const nameModal = document.getElementById('name-modal');
+const newNameInput = document.getElementById('new-name-input');
+const closeNameModal = document.getElementById('close-name-modal');
+const saveNameModal = document.getElementById('save-name-modal');
 
 // Voting Systems
 const SYSTEMS = {
+  // tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '?', '☕'],
+  natural: ['1', '2', '4', '8', '16', '20', '24', '?', '☕'],
   fibonacci: [
     '0',
     '1',
@@ -59,8 +65,6 @@ const SYSTEMS = {
     '?',
     '☕',
   ],
-  tshirt: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '?', '☕'],
-  natural: ['1', '4', '8', '16', '32', '?', '☕'],
 };
 
 // Initialization
@@ -158,14 +162,19 @@ function updateUI() {
       clearInterval(state.timerInterval);
       state.timerInterval = null;
     }
-    timerVal.textContent = formatTime(state.timerDuration);
+    timerVal.textContent = game.revealed
+      ? '00:00'
+      : formatTime(state.timerDuration);
   }
 
   // Players List
   playerList.innerHTML = game.players
     .map(
       (p) => `
-        <div class="glass p-3 rounded-xl flex items-center justify-between ${p.id === state.playerId ? 'border-blue-500/50' : ''}">
+        <div 
+          ${p.id === state.playerId ? `onclick="openNameModal('${p.name}')"` : ''}
+          class="glass p-3 rounded-xl flex items-center justify-between transition-colors ${p.id === state.playerId ? 'border-blue-500/50 cursor-pointer hover:bg-slate-800/50' : ''}"
+        >
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs">
                     ${p.name.charAt(0).toUpperCase()}
@@ -374,9 +383,6 @@ timerToggle.onclick = () => {
   const isTimerRunning = !!state.currentGame?.timerStartedAt;
   if (!isAdmin || isTimerRunning) return;
 
-  // Start with a clean slate
-  state.ws.send(JSON.stringify({ type: 'RESET_GAME' }));
-
   state.ws.send(
     JSON.stringify({
       type: 'START_TIMER',
@@ -440,6 +446,34 @@ saveTimerModal.onclick = () => {
   );
 
   timerModal.classList.add('hidden');
+};
+
+// Name Change Modal Logic
+window.openNameModal = (currentName) => {
+  newNameInput.value = currentName;
+  nameModal.classList.remove('hidden');
+  newNameInput.focus();
+};
+
+closeNameModal.onclick = () => {
+  nameModal.classList.add('hidden');
+};
+
+saveNameModal.onclick = () => {
+  const newName = newNameInput.value.trim();
+  if (!newName) return alert('Please enter a valid name');
+
+  state.playerName = newName;
+  localStorage.setItem('playerName', newName);
+
+  state.ws.send(
+    JSON.stringify({
+      type: 'CHANGE_NAME',
+      payload: { newName },
+    }),
+  );
+
+  nameModal.classList.add('hidden');
 };
 
 gameLink.onclick = () => {

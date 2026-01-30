@@ -181,6 +181,16 @@ wss.on('connection', (ws) => {
         }
         break;
       }
+
+      case 'CHANGE_NAME': {
+        const game = games.get(currentGameId);
+        if (game && currentPlayer) {
+          game.players.get(currentPlayer.id).name = payload.newName;
+          currentPlayer.name = payload.newName;
+          broadcastUpdate(game);
+        }
+        break;
+      }
     }
   });
 

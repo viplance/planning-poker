@@ -19,6 +19,7 @@ localStorage.setItem('playerId', state.playerId);
 const setupScreen = document.getElementById('setup-screen');
 const gameScreen = document.getElementById('game-screen');
 const playerNameInput = document.getElementById('player-name');
+const nameError = document.getElementById('name-error');
 const gameNameInput = document.getElementById('game-name');
 const votingSystemSelect = document.getElementById('voting-system');
 const revealPolicySelect = document.getElementById('reveal-policy');
@@ -43,8 +44,13 @@ const closeTimerModal = document.getElementById('close-timer-modal');
 const saveTimerModal = document.getElementById('save-timer-modal');
 const nameModal = document.getElementById('name-modal');
 const newNameInput = document.getElementById('new-name-input');
+const newNameError = document.getElementById('new-name-error');
 const closeNameModal = document.getElementById('close-name-modal');
 const saveNameModal = document.getElementById('save-name-modal');
+const errorModal = document.getElementById('error-modal');
+const errorMessage = document.getElementById('error-message');
+const closeErrorModalBtn = document.getElementById('close-error-modal');
+let errorCallback = null;
 
 // Voting Systems
 const SYSTEMS = {
@@ -88,6 +94,17 @@ function init() {
   }
 
   connect();
+
+  playerNameInput.addEventListener('input', () => {
+    if (playerNameInput.value.trim()) {
+      playerNameInput.classList.remove(
+        'border-rose-500',
+        'focus:ring-rose-500',
+      );
+      playerNameInput.classList.add('border-slate-700', 'focus:ring-blue-500');
+      nameError.classList.add('hidden');
+    }
+  });
 }
 
 function connect() {
@@ -125,10 +142,11 @@ function handleMessage(type, payload) {
       break;
 
     case 'ERROR':
-      alert(payload.message);
-      window.history.pushState({}, '', `/`);
-      state.gameId = '';
-      location.reload();
+      showError(payload.message, () => {
+        window.history.pushState({}, '', `/`);
+        state.gameId = '';
+        location.reload();
+      });
       break;
   }
 }
@@ -322,7 +340,13 @@ window.vote = (val) => {
 
 startBtn.onclick = () => {
   const name = playerNameInput.value.trim();
-  if (!name) return alert('Please enter your name');
+  if (!name) {
+    playerNameInput.classList.remove('border-slate-700', 'focus:ring-blue-500');
+    playerNameInput.classList.add('border-rose-500', 'focus:ring-rose-500');
+    nameError.classList.remove('hidden');
+    playerNameInput.focus();
+    return;
+  }
 
   state.playerName = name;
   localStorage.setItem('playerName', name);
@@ -348,7 +372,13 @@ startBtn.onclick = () => {
 
 joinBtn.onclick = () => {
   const name = playerNameInput.value.trim();
-  if (!name) return alert('Please enter your name');
+  if (!name) {
+    playerNameInput.classList.remove('border-slate-700', 'focus:ring-blue-500');
+    playerNameInput.classList.add('border-rose-500', 'focus:ring-rose-500');
+    nameError.classList.remove('hidden');
+    playerNameInput.focus();
+    return;
+  }
 
   state.playerName = name;
   localStorage.setItem('playerName', name);
@@ -451,9 +481,20 @@ saveTimerModal.onclick = () => {
 // Name Change Modal Logic
 window.openNameModal = (currentName) => {
   newNameInput.value = currentName;
+  newNameInput.classList.remove('border-rose-500', 'focus:ring-rose-500');
+  newNameInput.classList.add('border-slate-700', 'focus:ring-blue-500');
+  newNameError.classList.add('hidden');
   nameModal.classList.remove('hidden');
   newNameInput.focus();
 };
+
+newNameInput.addEventListener('input', () => {
+  if (newNameInput.value.trim()) {
+    newNameInput.classList.remove('border-rose-500', 'focus:ring-rose-500');
+    newNameInput.classList.add('border-slate-700', 'focus:ring-blue-500');
+    newNameError.classList.add('hidden');
+  }
+});
 
 closeNameModal.onclick = () => {
   nameModal.classList.add('hidden');
@@ -461,7 +502,13 @@ closeNameModal.onclick = () => {
 
 saveNameModal.onclick = () => {
   const newName = newNameInput.value.trim();
-  if (!newName) return alert('Please enter a valid name');
+  if (!newName) {
+    newNameInput.classList.remove('border-slate-700', 'focus:ring-blue-500');
+    newNameInput.classList.add('border-rose-500', 'focus:ring-rose-500');
+    newNameError.classList.remove('hidden');
+    newNameInput.focus();
+    return;
+  }
 
   state.playerName = newName;
   localStorage.setItem('playerName', newName);
@@ -481,6 +528,28 @@ gameLink.onclick = () => {
   const original = gameLink.textContent;
   gameLink.textContent = 'Copied!';
   setTimeout(() => (gameLink.textContent = original), 2000);
+};
+
+// Error Modal Logic
+function showError(msg, callback) {
+  errorMessage.textContent = msg;
+  errorCallback = callback;
+  errorModal.classList.remove('hidden');
+  // Small delay to allow display change to take effect before animating
+  setTimeout(() => {
+    errorModal.classList.remove('opacity-0', 'scale-95');
+  }, 10);
+}
+
+closeErrorModalBtn.onclick = () => {
+  errorModal.classList.add('opacity-0', 'scale-95');
+  setTimeout(() => {
+    errorModal.classList.add('hidden');
+    if (errorCallback) {
+      errorCallback();
+      errorCallback = null;
+    }
+  }, 300);
 };
 
 init();
